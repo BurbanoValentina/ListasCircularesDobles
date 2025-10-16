@@ -8,11 +8,10 @@ from typing import Any, Callable, Iterable, Optional
 
 HOST = "0.0.0.0"
 PORT = 8000
-DEFAULT_TZ = "America/Bogota"  # Colombia por defecto
+DEFAULT_TZ = "America/Bogota"  
 
-# =============================
 #  ESTRUCTURA: Lista Circular Doble
-# =============================
+
 class _Node:
     __slots__ = ("value", "prev", "next")
     def __init__(self, value: Any):
@@ -21,12 +20,7 @@ class _Node:
         self.next: Optional[_Node] = None
 
 class CircularDoublyLinkedList:
-    """Lista circular doble con opción de capacidad (modo buffer circular).
 
-    - Si capacity es None: crece sin límite.
-    - Si capacity es un entero > 0: actúa como buffer circular (si se sobrepasa,
-      al hacer append se expulsa el nodo de la cabeza).
-    """
     def __init__(self, capacity: Optional[int] = None):
         if capacity is not None and capacity <= 0:
             raise ValueError("capacity debe ser > 0 o None")
@@ -34,7 +28,6 @@ class CircularDoublyLinkedList:
         self._head: Optional[_Node] = None
         self._len = 0
 
-    # ---------- utilidades internas ----------
     def _link_between(self, left: _Node, right: _Node, node: _Node) -> None:
         left.next = node
         node.prev = left
@@ -48,11 +41,10 @@ class CircularDoublyLinkedList:
 
     def _remove_node(self, node: _Node) -> Any:
         val = node.value
-        if self._len == 1:  # quedará vacía
+        if self._len == 1:  
             self._head = None
             self._len = 0
             return val
-        # puentea el nodo
         node.prev.next = node.next
         node.next.prev = node.prev
         if node is self._head:
@@ -60,7 +52,6 @@ class CircularDoublyLinkedList:
         self._len -= 1
         return val
 
-    # ---------- API pública ----------
     def __len__(self) -> int:
         return self._len
 
@@ -83,10 +74,8 @@ class CircularDoublyLinkedList:
             self._insert_head_empty(node)
         else:
             tail = self._head.prev
-            # insertar entre tail y head
             self._link_between(tail, self._head, node)
             self._len += 1
-        # manejar capacidad en modo buffer
         if self.capacity is not None and self._len > self.capacity:
             self.popleft()
 
@@ -97,7 +86,7 @@ class CircularDoublyLinkedList:
         else:
             tail = self._head.prev
             self._link_between(tail, self._head, node)
-            self._head = node  # nuevo head
+            self._head = node  
             self._len += 1
         if self.capacity is not None and self._len > self.capacity:
             self.pop()
@@ -105,7 +94,6 @@ class CircularDoublyLinkedList:
     def pop(self) -> Any:
         if not self._head:
             raise IndexError("pop de lista vacía")
-        # tail es head.prev
         return self._remove_node(self._head.prev)
 
     def popleft(self) -> Any:
@@ -120,11 +108,9 @@ class CircularDoublyLinkedList:
     def rotate(self, steps: int) -> None:
         if not self._head or self._len <= 1 or steps == 0:
             return
-        # rotación positiva: mueve head hacia la derecha (tail -> head)
-        # rotación negativa: mueve head hacia la izquierda
         steps = steps % self._len
         for _ in range(steps):
-            self._head = self._head.prev  # mover head hacia la izquierda N veces equivale a rotación positiva
+            self._head = self._head.prev  
 
     def find(self, pred: Callable[[Any], bool]) -> Optional[Any]:
         if not self._head:
@@ -142,7 +128,6 @@ class CircularDoublyLinkedList:
             return 0
         removed = 0
         cur = self._head
-        # necesitamos recorrer exactamente len pasos máximo; cuidado si borra el head
         for _ in range(self._len):
             nxt = cur.next
             if cur.value == value:
@@ -183,7 +168,6 @@ class CircularDoublyLinkedList:
     def __repr__(self) -> str:
         return f"CDLL(len={self._len}, capacity={self.capacity}, values={self.to_list()})"
 
-# Buffer circular para registrar los últimos N payloads del endpoint /api/time
 RECENT_TIME_PAYLOADS = CircularDoublyLinkedList(capacity=100)
 
 
@@ -193,7 +177,6 @@ def make_time_payload(tz: str, fmt: str):
         tz_ok = True
         tz_used = tz
     except Exception:
-        # Si la zona no existe (o falta base de datos), usa por defecto
         tz_ok = False
         tz_used = DEFAULT_TZ
         now = datetime.now(ZoneInfo(tz_used))
@@ -201,10 +184,8 @@ def make_time_payload(tz: str, fmt: str):
     hour24 = now.hour
     hour12 = hour24 % 12 or 12
     minute = now.minute
-    # segundo con fracciones para animación suave
     second = now.second + now.microsecond / 1_000_000.0
 
-    # Ángulos (0° en las 12, horario)
     hour_angle = ((hour24 % 12) + minute / 60.0 + second / 3600.0) * 30.0
     minute_angle = (minute + second / 60.0) * 6.0
     second_angle = second * 6.0
@@ -234,7 +215,6 @@ class Handler(BaseHTTPRequestHandler):
         body = (json.dumps(payload)).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", content_type)
-        # CORS para permitir al frontend en cualquier origen
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
@@ -251,12 +231,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
 
-        # --------- Health ---------
         if parsed.path == "/health":
             self._write(200, {"ok": True, "status": "healthy"})
             return
 
-        # --------- Time API ---------
         if parsed.path == "/api/time":
             qs = parse_qs(parsed.query or "")
             tz = (qs.get("tz", [DEFAULT_TZ])[0] or DEFAULT_TZ).strip()
@@ -266,7 +244,6 @@ class Handler(BaseHTTPRequestHandler):
 
             try:
                 payload = make_time_payload(tz, fmt)
-                # guarda una versión resumida en el buffer circular
                 RECENT_TIME_PAYLOADS.append({
                     "iso_time": payload["iso_time"],
                     "timezone_used": payload["timezone_used"],
@@ -280,7 +257,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._write(500, {"error": "Internal Server Error", "detail": str(e)})
             return
 
-        # --------- List API (circular doble) ---------
+        # --------- List (circular doble) ---------
         if parsed.path == "/api/list":
             qs = parse_qs(parsed.query or "")
             op = (qs.get("op", ["state"])[0] or "state").strip().lower()
@@ -353,11 +330,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._write(200, {"removed": removed, "len": len(RECENT_TIME_PAYLOADS)})
                 return
 
-            # op desconocida
             self._write(400, {"error": "Operación no soportada", "op": op})
             return
 
-        # Ruta no encontrada
         self._write(404, {"error": "Not Found", "path": parsed.path})
 
 
@@ -371,7 +346,6 @@ def run():
 
 
 if __name__ == "__main__":
-    # Aviso útil para Windows
     if sys.platform.startswith("win"):
         print("Info: Windows: si obtienes error de zona horaria, instala la base de datos con:")
         print("    py -m pip install tzdata")
