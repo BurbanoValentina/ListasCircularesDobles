@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reloj Mundial</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --text: #e5e7eb;
+      --accent: #60a5fa;
+      --tick: #94a3b8;
+      --hand: #e5e7eb;
+      --second: #f87171;
+      --tick-major: #e5e7eb;
+      --tick-minor: #94a3b8;
+      --border: #1f2937;
+      --control-bg: #0b1220;
+      --muted: #cbd5e1;
+      --dial-fill: var(--bg);
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+      background: var(--bg);
+      color: var(--text);
+      display: grid;
+      grid-template-rows: 1fr;
+      min-height: 100vh;
+    }
+
+    .wrap {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+      padding: 24px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    select,
+    button {
+      background: var(--control-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+
+    .clock-wrap {
+      display: grid;
+      place-items: center;
+    }
+
+    .meta {
+      margin-top: 14px;
+      font-size: 14px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .error {
+      margin-top: 8px;
+      color: #fecaca;
+      font-size: 13px;
+      text-align: center;
+      min-height: 1.2em;
+    }
+
+    .dial.classic,
+    .dial.minimal,
+    .dial.neon {
+      fill: var(--dial-fill);
+    }
+
+    /* Fondos */
+    .bg-black {
+      --bg: #000000;
+      --panel: #111827;
+      --text: #e5e7eb;
+      --accent: #60a5fa;
+      --tick-major: #e5e7eb;
+      --tick-minor: #94a3b8;
+      --hand: #e5e7eb;
+      --second: #f87171;
+      --border: #1f2937;
+      --control-bg: #0b1220;
+      --muted: #cbd5e1;
+      --dial-fill: var(--bg);
+    }
+
+    .bg-white {
+      --bg: #ffffff;
+      --panel: #f8fafc;
+      --text: #0b1220;
+      --accent: #2563eb;
+      --tick-major: #0b1220;
+      --tick-minor: #64748b;
+      --hand: #111827;
+      --second: #dc2626;
+      --border: #e5e7eb;
+      --control-bg: #ffffff;
+      --muted: #475569;
+      --dial-fill: var(--bg);
+    }
+
+    .hand.thin {
+      stroke-width: 2.4;
+    }
+
+    .hand.medium {
+      stroke-width: 3.6;
+    }
+
+    .hand.bold {
+      stroke-width: 5;
+    }
+
+    .cap {
+      fill: var(--hand);
+    }
+
+    .digital {
+      margin-top: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--muted);
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body class="bg-black">
+  <div class="wrap">
+    <aside class="panel">
+      <h2>Menú</h2>
+      <div class="field">
+        <label for="tz">País / Ciudad (Zona horaria)</label>
+        <select id="tz">
+          <option value="America/Bogota">Colombia (America/Bogota)</option>
+          <option value="America/Mexico_City">México (America/Mexico_City)</option>
+          <option value="America/Lima">Perú (America/Lima)</option>
+          <option value="America/Santiago">Chile (America/Santiago)</option>
+          <option value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires)</option>
+          <option value="America/New_York">EE.UU. (New York)</option>
+          <option value="America/Los_Angeles">EE.UU. (Los Ángeles)</option>
+          <option value="Europe/Madrid">España (Madrid)</option>
+          <option value="Europe/London">Reino Unido (Londres)</option>
+          <option value="Europe/Berlin">Alemania (Berlín)</option>
+          <option value="Asia/Tokyo">Japón (Tokio)</option>
+          <option value="Asia/Shanghai">China (Shanghái)</option>
+          <option value="Asia/Kolkata">India (Kolkata)</option>
+          <option value="Australia/Sydney">Australia (Sídney)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="fmt">Formato de hora</label>
+        <select id="fmt">
+          <option value="24">Militar (24 h)</option>
+          <option value="12">Normal (12 h)</option>
+        </select>
+      </div>
+
+      <!-- Nombres visibles actualizados -->
+      <div class="field">
+        <label for="dial">Tipo de reloj</label>
+        <select id="dial">
+          <option value="classic">Círculo</option>
+          <option value="minimal">Cuadrado redondeado</option>
+          <option value="neon">Hexágono</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="hands">Tipo de manecillas</label>
+        <select id="hands">
+          <option value="withNumbers" selected>Con números</option>
+          <option value="withoutNumbers">Sin números</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="bg">Tipo de fondo</label>
+        <select id="bg">
+          <option value="bg-black">Negro</option>
+          <option value="bg-white">Blanco</option>
+        </select>
+      </div>
+
+      <div class="field"><button id="centerBtn">Valen Clock</button></div>
+      <p class="error" id="err"></p>
+    </aside>
+
+    <main class="clock-wrap">
+      <svg id="clock" viewBox="0 0 200 200" width="420" height="420">
+        <defs>
+          <radialGradient id="gradClassic" cx="50%" cy="45%" r="70%">
+            <stop offset="0%" stop-color="#0b1220" />
+            <stop offset="70%" stop-color="#0f172a" />
+            <stop offset="100%" stop-color="#0b1220" />
+          </radialGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="1.8" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <!-- Clip para mantener todo dentro de la forma -->
+          <clipPath id="dialClip">
+            <circle id="clipCircle" cx="100" cy="100" r="92" />
+          </clipPath>
+        </defs>
+
+        <!-- FORMAS DEL DIAL -->
+        <g id="dialShapes">
+          <circle id="dialCircle" class="dial classic" cx="100" cy="100" r="92" stroke="var(--border)"
+            stroke-width="2" />
+          <rect id="dialSquare" class="dial minimal" x="20" y="20" width="160" height="160" rx="18" ry="18"
+            stroke="var(--border)" stroke-width="2" style="display:none" />
+          <polygon id="dialHex" class="dial neon" points="192,100 146,177 54,177 8,100 54,23 146,23"
+            stroke="var(--border)" stroke-width="2" style="display:none" />
+        </g>
+
+        <g id="ticks" clip-path="url(#dialClip)"></g>
+        <g id="numbers" clip-path="url(#dialClip)"></g>
+
+        <g id="handsGroup" filter="url(#glow)" clip-path="url(#dialClip)">
+          <line id="hourHand" x1="100" y1="100" x2="100" y2="62" stroke="var(--hand)" stroke-linecap="round"
+            class="hand medium" />
+          <line id="minuteHand" x1="100" y1="100" x2="100" y2="44" stroke="var(--hand)" stroke-linecap="round"
+            class="hand medium" />
+          <line id="secondHand" x1="100" y1="102" x2="100" y2="36" stroke="var(--second)" stroke-linecap="round"
+            class="hand thin" />
+          <circle class="cap" cx="100" cy="100" r="2.8" />
+        </g>
+      </svg>
+
+      <div id="digital" class="digital">—:—:—</div>
+      <div class="meta" id="meta"></div>
+    </main>
+  </div>
+
+  <script>
+    const API_BASE = "http://localhost:8000";
+    const API = (tz, fmt) => `${API_BASE}/api/time?tz=${encodeURIComponent(tz)}&format=${encodeURIComponent(fmt)}`;
+
+    const tzSel = document.getElementById('tz');
+    const fmtSel = document.getElementById('fmt');
+    const dialSel = document.getElementById('dial');
+    const handsSel = document.getElementById('hands');
+    const bgSel = document.getElementById('bg');
+
+    // Formas
+    const dialCircle = document.getElementById('dialCircle');
+    const dialSquare = document.getElementById('dialSquare');
+    const dialHex = document.getElementById('dialHex');
+    const clipCircle = document.getElementById('clipCircle');
+
+    // Manecillas y texto
+    const hourHand = document.getElementById('hourHand');
+    const minuteHand = document.getElementById('minuteHand');
+    const secondHand = document.getElementById('secondHand');
+    const digital = document.getElementById('digital');
+    const meta = document.getElementById('meta');
+    const errBox = document.getElementById('err');
+
+    // Grupos
+    const ticks = document.getElementById('ticks');
+    const numbers = document.getElementById('numbers');
+
+    function deg2rad(d) { return d * Math.PI / 180; }
+
+    // --- Geometría: intersección rayo–borde según forma seleccionada ---
+    // Centro del reloj
+    const CX = 100, CY = 100;
+
+    // Polígono del hexágono (mismo que el SVG)
+    const HEX = [
+      { x: 192, y: 100 }, { x: 146, y: 177 }, { x: 54, y: 177 },
+      { x: 8, y: 100 }, { x: 54, y: 23 }, { x: 146, y: 23 }
+    ];
+
+    function rayIntersectPolygon(angleRad, polygon) {
+      const dx = Math.cos(angleRad), dy = Math.sin(angleRad);
+      let bestT = Infinity, hit = null;
+      for (let i = 0; i < polygon.length; i++) {
+        const p1 = polygon[i], p2 = polygon[(i + 1) % polygon.length];
+        const x3 = p1.x, y3 = p1.y, x4 = p2.x, y4 = p2.y;
+
+        // Intersección de ray (CX,CY)+t*(dx,dy) con segmento p1->p2
+        const den = (dx * (y3 - y4) - dy * (x3 - x4));
+        if (Math.abs(den) < 1e-6) continue;
+        const t = ((x3 - CX) * (y3 - y4) - (y3 - CY) * (x3 - x4)) / den;
+        const u = ((x3 - CX) * dy - (y3 - CY) * dx) / den;
+        if (t > 0 && u >= 0 && u <= 1 && t < bestT) {
+          bestT = t;
+          hit = { x: CX + dx * t, y: CY + dy * t, t };
+        }
+      }
+      return hit; // {x,y,t}
+    }
+
+    function boundaryPoint(angleDeg, kind) {
+      const a = deg2rad(angleDeg);
+      if (kind === 'classic') {
+        const R = 92;
+        return { x: CX + Math.cos(a) * R, y: CY + Math.sin(a) * R, r: R };
+      }
+      if (kind === 'minimal') {
+        // Cuadrado redondeado (aprox. usando el límite del cuadrado 160x160, radio 18)
+        const half = 80;
+        const dx = Math.cos(a), dy = Math.sin(a);
+        const tx = dx !== 0 ? ((dx > 0 ? (CX + half) : (CX - half)) - CX) / dx : Infinity;
+        const ty = dy !== 0 ? ((dy > 0 ? (CY + half) : (CY - half)) - CY) / dy : Infinity;
+        let t = Math.min(Math.abs(tx), Math.abs(ty));
+        t -= 6; // corrección visual por esquinas redondeadas
+        return { x: CX + dx * t, y: CY + dy * t, r: t };
+      }
+      // neón (hexágono)
+      const hit = rayIntersectPolygon(deg2rad(angleDeg), HEX);
+      const t = hit ? hit.t - 2 : 75; // 2px para no pisar el borde
+      const dx = Math.cos(deg2rad(angleDeg)), dy = Math.sin(deg2rad(angleDeg));
+      return { x: CX + dx * t, y: CY + dy * t, r: t };
+    }
+
+    function rebuildTicksAndNumbers(kind) {
+      ticks.innerHTML = '';
+      numbers.innerHTML = '';
+      // 60 marcas
+      for (let i = 0; i < 60; i++) {
+        const angle = i * 6 - 90;
+        const bound = boundaryPoint(angle, kind);
+        const isMajor = i % 5 === 0;
+        const tickLen = isMajor ? 14 : 8;
+        const innerR = Math.max(0, bound.r - tickLen);
+
+        const aRad = deg2rad(angle);
+        const x2 = bound.x;
+        const y2 = bound.y;
+        const x1 = CX + Math.cos(aRad) * innerR;
+        const y1 = CY + Math.sin(aRad) * innerR;
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+        line.setAttribute('stroke', isMajor ? 'var(--tick-major)' : 'var(--tick-minor)');
+        line.setAttribute('stroke-width', isMajor ? '2.2' : '1');
+        line.setAttribute('stroke-linecap', 'round');
+        ticks.appendChild(line);
+      }
+
+      // números (1..12)
+      const showNumbers = handsSel.value === 'withNumbers';
+      if (showNumbers) {
+        for (let i = 1; i <= 12; i++) {
+          const angle = i * 30 - 90;
+          const bound = boundaryPoint(angle, kind);
+          const offset = 24;
+          const aRad = deg2rad(angle);
+          const x = CX + Math.cos(aRad) * Math.max(0, bound.r - offset);
+          const y = CY + Math.sin(aRad) * Math.max(0, bound.r - offset) + 4;
+
+          const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          t.setAttribute('x', x);
+          t.setAttribute('y', y);
+          t.setAttribute('text-anchor', 'middle');
+          t.setAttribute('font-size', '10');
+          t.setAttribute('fill', 'var(--text)');
+          t.setAttribute('font-weight', '600');
+          t.textContent = i;
+          numbers.appendChild(t);
+        }
+      }
+    }
+
+    // Ajuste de longitudes de manecillas según forma (radio hacia arriba)
+    function adjustHandsForShape(kind) {
+      const upAngle = -90;
+      const up = boundaryPoint(upAngle, kind).r;
+      const hourLen = Math.max(30, up - 38);
+      const minuteLen = Math.max(40, up - 24);
+      const secondLen = Math.max(46, up - 18);
+
+      hourHand.setAttribute('x2', '100'); hourHand.setAttribute('y2', 100 - hourLen);
+      minuteHand.setAttribute('x2', '100'); minuteHand.setAttribute('y2', 100 - minuteLen);
+      secondHand.setAttribute('x2', '100'); secondHand.setAttribute('y2', 100 - secondLen);
+    }
+
+    // Estilos dinámicos
+    function applyDialStyle(kind) {
+      // Mostrar sólo la forma elegida
+      dialCircle.style.display = (kind === 'classic') ? '' : 'none';
+      dialSquare.style.display = (kind === 'minimal') ? '' : 'none';
+      dialHex.style.display = (kind === 'neon') ? '' : 'none';
+
+      // Actualizar clases
+      dialCircle.setAttribute('class', 'dial classic');
+      dialSquare.setAttribute('class', 'dial minimal');
+      dialHex.setAttribute('class', 'dial neon');
+
+      // Actualizar clip para contener tics/números/manecillas
+      if (kind === 'classic') {
+        const newClip = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        newClip.setAttribute('id', 'clipCircle');
+        newClip.setAttribute('cx', '100'); newClip.setAttribute('cy', '100'); newClip.setAttribute('r', '92');
+        document.getElementById('dialClip').innerHTML = '';
+        document.getElementById('dialClip').appendChild(newClip);
+      } else if (kind === 'minimal') {
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', '20'); rect.setAttribute('y', '20');
+        rect.setAttribute('width', '160'); rect.setAttribute('height', '160');
+        rect.setAttribute('rx', '18'); rect.setAttribute('ry', '18');
+        document.getElementById('dialClip').innerHTML = '';
+        document.getElementById('dialClip').appendChild(rect);
+      } else {
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', '192,100 146,177 54,177 8,100 54,23 146,23');
+        document.getElementById('dialClip').innerHTML = '';
+        document.getElementById('dialClip').appendChild(poly);
+      }
+
+      rebuildTicksAndNumbers(kind);
+      adjustHandsForShape(kind);
+    }
+
+    function applyHandStyle(kind) {
+      const thickness = ['thin', 'medium', 'bold'];
+      [hourHand, minuteHand, secondHand].forEach(el => {
+        el.classList.remove('thin', 'medium', 'bold');
+      });
+      if (thickness.includes(kind)) {
+        [hourHand, minuteHand, secondHand].forEach(el => el.classList.add(kind));
+      } else {
+        [hourHand, minuteHand, secondHand].forEach(el => el.classList.add('medium'));
+      }
+      rebuildTicksAndNumbers(dialSel.value);
+    }
+
+    function applyBackground(kind) {
+      document.body.classList.remove('bg-classic', 'bg-dark', 'bg-neon', 'bg-black', 'bg-white');
+      document.body.classList.add(kind);
+    }
+
+    document.getElementById('centerBtn').addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    document.getElementById('dial').addEventListener('change', () => applyDialStyle(dialSel.value));
+    document.getElementById('hands').addEventListener('change', () => applyHandStyle(handsSel.value));
+    document.getElementById('bg').addEventListener('change', () => applyBackground(bgSel.value));
+
+    function rotate(el, degrees) { el.setAttribute('transform', `rotate(${degrees} 100 100)`); }
+    const pad = n => String(Math.floor(n)).padStart(2, '0');
+
+    async function tick() {
+      const tz = tzSel.value;
+      const fmt = fmtSel.value;
+      try {
+        const res = await fetch(API(tz, fmt));
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+
+        const { hour, hour_24, minute, second, angles, timezone_used, iso_time, format } = data;
+        rotate(hourHand, angles.hour);
+        rotate(minuteHand, angles.minute);
+        rotate(secondHand, angles.second);
+
+        const secWhole = Math.floor(second);
+        if (format === '12') {
+          const ampm = hour_24 >= 12 ? 'PM' : 'AM';
+          digital.textContent = `${pad(hour)}:${pad(minute)}:${pad(secWhole)} ${ampm}`;
+        } else {
+          digital.textContent = `${pad(hour_24)}:${pad(minute)}:${pad(secWhole)}`;
+        }
+        meta.textContent = `${timezone_used} • ${new Date(iso_time).toLocaleString()}`;
+        errBox.textContent = '';
+      } catch (e) {
+        digital.textContent = '—:—:—';
+        errBox.textContent = 'No se pudo obtener la hora. ¿El backend está en ' + API_BASE + '? (' + e.message + ')';
+      }
+    }
+
+    // Inicialización
+    applyDialStyle(dialSel.value);
+    applyHandStyle(handsSel.value);
+    applyBackground(bgSel.value);
+
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+
+</html>
